@@ -48,7 +48,7 @@ module "kms" {
       principals = [
         {
           type        = "Service"
-          identifiers = ["://amazonaws.com"]
+          identifiers = ["s3.amazonaws.com"]
         }
       ]
       actions = [
@@ -93,7 +93,7 @@ module "event_queue" {
       principals = [
         {
           type        = "Service"
-          identifiers = ["://amazonaws.com"]
+          identifiers = ["s3.amazonaws.com"]
         }
       ]
       resources = ["arn:aws:sqs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:${local.queue_name}"]

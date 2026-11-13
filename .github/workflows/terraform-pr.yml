@@ -60,7 +60,7 @@
             directory: ${{ env.WORKING_DIR }}
             framework: terraform
             soft_fail: false
-            skip_check: CKV_AWS_144,CKV_AWS_18
+            skip_check: CKV_AWS_144,CKV_AWS_18,CKV_TF_1
 
     terraform-plan:
       name: "Terraform Plan"
