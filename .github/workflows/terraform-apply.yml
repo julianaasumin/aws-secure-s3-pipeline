@@ -1,0 +1,45 @@
+
+  name: "Terraform Deploy to AWS"
+
+  on:
+    push:
+      branches: [ main ]
+      paths:
+        - 'environments/**'
+
+  permissions:
+    id-token: write
+    contents: read
+
+  env:
+    TF_VERSION: "1.10.5"
+    AWS_REGION: "us-east-1"
+    WORKING_DIR: "environments/dev"
+
+  jobs:
+    terraform-apply:
+      name: "Terraform Apply (Dev)"
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v4
+
+        - name: Configure AWS Credentials via OIDC
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+            aws-region: ${{ env.AWS_REGION }}
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ env.TF_VERSION }}
+
+        - name: Terraform Init
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform init
+
+        - name: Terraform Apply
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform apply -auto-approve
