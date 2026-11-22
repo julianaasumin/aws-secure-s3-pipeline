@@ -1,6 +1,9 @@
 # AWS Secure S3 Event-Driven Ingestion Pipeline
 
-[![Terraform PR Checks & Plan](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-pr.yml/badge.svg)](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-pr.yml)[![Terraform Deploy to AWS](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-apply.yml/badge.svg)](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-apply.yml)
+[![Terraform PR Checks & Plan](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-pr.yml/badge.svg)](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-pr.yml)
+
+[![Terraform Deploy to AWS](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-apply.yml/badge.svg)](https://github.com/julianaasumin/aws-secure-s3-pipeline/actions/workflows/terraform-apply.yml)
+
 An automated, zero-trust event-driven data ingestion pipeline on AWS provisioned with **Terraform** and deployed via **GitHub Actions** using keyless **OIDC authentication**.
 
 ---
