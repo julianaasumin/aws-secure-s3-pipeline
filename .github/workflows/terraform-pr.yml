@@ -1,0 +1,123 @@
+
+  name: "Terraform PR Checks & Plan"
+
+  on:
+    pull_request:
+      branches: [ main ]
+      paths:
+        - 'environments/**'
+        - '.github/workflows/**'
+
+  permissions:
+    id-token: write      # Required for GitHub OIDC authentication with AWS
+    contents: read       # Required to checkout code
+    pull-requests: write # Required to post Terraform Plan comments on PRs
+
+  env:
+    TF_VERSION: "1.10.5"
+    AWS_REGION: "us-east-1"
+    WORKING_DIR: "environments/dev"
+
+  jobs:
+    validate-and-scan:
+      name: "Format, Lint & Security Scan"
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v4
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ env.TF_VERSION }}
+
+        - name: Terraform Format Check
+          run: terraform fmt -check -recursive
+
+        - name: Terraform Init (Backend Disabled for Validation)
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform init -backend=false
+
+        - name: Terraform Validate
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform validate
+
+        - name: Setup TFLint
+          uses: terraform-linters/setup-tflint@v4
+          with:
+            tflint_version: latest
+
+        - name: Init & Run TFLint
+          working-directory: ${{ env.WORKING_DIR }}
+          run: |
+            tflint --init --config ../../.tflint.hcl
+            tflint --config ../../.tflint.hcl
+
+        - name: Run Checkov Security Scan
+          uses: bridgecrewio/checkov-action@v12
+          with:
+            directory: ${{ env.WORKING_DIR }}
+            framework: terraform
+            soft_fail: false
+            skip_check: CKV_AWS_144,CKV_AWS_18,CKV_TF_1
+
+    terraform-plan:
+      name: "Terraform Plan"
+      needs: validate-and-scan
+      runs-on: ubuntu-latest
+
+      steps:
+        - name: Checkout Repository
+          uses: actions/checkout@v4
+
+        - name: Configure AWS Credentials via OIDC
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+            aws-region: ${{ env.AWS_REGION }}
+
+        - name: Setup Terraform
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: ${{ env.TF_VERSION }}
+
+        - name: Terraform Init
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform init
+
+        - name: Terraform Plan
+          id: plan
+          working-directory: ${{ env.WORKING_DIR }}
+          run: terraform plan -no-color -out=tfplan
+          continue-on-error: true
+
+        - name: Post Plan Output to Pull Request
+          uses: actions/github-script@v7
+          env:
+            PLAN: "${{ steps.plan.outputs.stdout }}"
+          with:
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            script: |
+              const output = `#### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+              
+              <details><summary>Show Plan</summary>
+              
+              \`\`\`terraform
+              ${process.env.PLAN}
+              \`\`\`
+              
+              </details>
+              
+              *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+              
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: output
+              })
+
+        - name: Fail if Plan Failed
+          if: steps.plan.outcome == 'failure'
+          run: exit 1
